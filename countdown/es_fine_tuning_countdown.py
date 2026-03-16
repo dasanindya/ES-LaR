@@ -59,14 +59,6 @@ def force_memory_cleanup():
         torch.cuda.ipc_collect()
         torch.cuda.synchronize()
 
-# def save_model_checkpoint(model, tokenizer, iteration, model_name, initial_seed, args, dataset_size):
-#     """Save model checkpoint at specified iteration"""
-#     question_num = dataset_size
-#     save_dir = f"{model_name}_es_random_seed{initial_seed}_pop{POPULATION_SIZE}_iter{iteration}_sigma{SIGMA}_alpha{ALPHA}_{args.precision}_threads{args.gpu_threads}_question_num{question_num}_checkpoint"
-#     print(f"Saving checkpoint at iteration {iteration} to {save_dir}...")
-#     model.save_pretrained(save_dir)
-#     tokenizer.save_pretrained(save_dir)
-#     print(f"Checkpoint saved successfully.")
 
 def get_model_family(model_name):
     """Detect model family from model name"""
@@ -142,9 +134,6 @@ def evaluate_model(model, tokenizer, input_text, target_text, accelerator, seed_
         if tgt_text.isdigit():
             target = int(tgt_text)
 
-        # model_response = gen_text
-        # if "assistant:" in gen_text:
-        #     model_response = gen_text.split("assistant:")[-1].strip()
         model_family = get_model_family(args.model_name)
         model_response = extract_assistant_response(gen_text, model_family)
 
@@ -313,23 +302,6 @@ def main():
     training_start_time = time.time()
 
     # Seed tracing setup
-    # seed_trace_dir = os.path.join(args.output_dir, "seed_tracing")
-    # seed_trace_filename = (
-    #     f"seed_trace"
-    #     f"_{args.model_name.replace('/', '_')}"
-    #     f"_pop{POPULATION_SIZE}"
-    #     f"_sigma{SIGMA}"
-    #     f"_alpha{ALPHA}"
-    #     f"_seed{initial_seed}"
-    #     f".json"
-    # )
-    # seed_trace_path = os.path.join(seed_trace_dir, seed_trace_filename)
-    # seed_trace = {}
-    # if accelerator.is_main_process:
-    #     os.makedirs(seed_trace_dir, exist_ok=True)
-    #     if os.path.exists(seed_trace_path):
-    #         with open(seed_trace_path, "r") as f:
-    #             seed_trace = json.load(f)
 
     seed_trace_dir = os.path.join(args.output_dir, "seed_tracing")
     seed_trace_filename = (
@@ -424,9 +396,7 @@ def main():
         if args.verbose:
             print(f"Process {accelerator.process_index} assigned {len(local_seeds)} seeds: {[idx for idx, _ in local_seeds]}")
 
-        # Process seeds in smaller batches to reduce memory pressure
-        #local_rewards = []
-        #batch_size = max(1, min(args.gpu_threads, len(local_seeds)))
+        
 
         # Filter seeds already present in trace
         seeds_to_process = []
@@ -466,38 +436,7 @@ def main():
                     local_rewards.extend(results)
                 force_memory_cleanup()
 
-        # batch_size = max(1, min(args.gpu_threads, len(seeds_to_process)))
-        # for batch_start in range(0, len(seeds_to_process), batch_size):
-        #     batch_end = min(batch_start + batch_size, len(seeds_to_process))
-        #     batch_seeds = seeds_to_process[batch_start:batch_end]
-
-        #     with ThreadPoolExecutor(max_workers=len(batch_seeds)) as executor:
-        #         thread_args = []
-        #         for thread_id, (seed_idx, seed) in enumerate(batch_seeds):
-        #             thread_args.append((seed_idx, seed, model_list[thread_id], tokenizer, accelerator, thread_id, args.verbose, dataset))
-        #         results = list(executor.map(process_seed, thread_args))
-        #         local_rewards.extend(results)
-
-        #     force_memory_cleanup()
-
-        # for batch_start in range(0, len(local_seeds), batch_size):
-        #     batch_end = min(batch_start + batch_size, len(local_seeds))
-        #     batch_seeds = local_seeds[batch_start:batch_end]
-
-        #     with ThreadPoolExecutor(max_workers=len(batch_seeds)) as executor:
-        #         # Prepare thread arguments
-        #         thread_args = []
-        #         for thread_id, (seed_idx, seed) in enumerate(batch_seeds):
-        #             # Pass verbose flag as argument to process_seed function
-        #             thread_args.append((seed_idx, seed, model_list[thread_id], tokenizer, accelerator, thread_id, args.verbose, dataset))
-
-        #         # Execute in parallel and collect results
-        #         results = list(executor.map(process_seed, thread_args))
-        #         local_rewards.extend(results)
-
-        #     # Clean up between batches
-        #     force_memory_cleanup()
-
+        
         # Collect rewards from all processes
         all_rewards = torch.zeros(POPULATION_SIZE, device=accelerator.device)
 
@@ -626,9 +565,6 @@ def main():
             except Exception:
                 pass
 
-            # Save checkpoint every 100 iterations
-            # if (iteration + 1) % 100 == 0:
-            #     save_model_checkpoint(original_model, tokenizer, iteration + 1, model_name, initial_seed, args, len(dataset))
 
     total_time = time.time() - training_start_time
 
@@ -643,25 +579,7 @@ def main():
         tokenizer.save_pretrained(save_dir)
         print(f"Final model saved successfully.")
 
-        # Save learning curve plot
-        '''
-        try:
-            plot_path = f"{model_name.replace('/', '_')}_learning_curve.png"
-            plt.figure()
-            plt.plot(range(1, len(mean_rewards_history) + 1), mean_rewards_history)
-            plt.xlabel('Iteration')
-            plt.ylabel('Mean Reward')
-            plt.title('Learning Curve: Mean Reward per Iteration')
-            plt.grid(True)
-            plt.savefig(plot_path)
-            plt.close()
-            try:
-                wandb.save(plot_path)
-            except Exception:
-                pass
-        except Exception as e:
-            print(f"Warning: failed to save learning curve plot: {e}")
-        '''
+        
 
 if __name__ == "__main__":
     os.environ["PYTHONWARNINGS"] = "ignore"
