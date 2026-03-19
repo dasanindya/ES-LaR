@@ -327,8 +327,8 @@ def main():
             "execution_history": [],
             "metadata": {
                 "description": "Seed trace for ES fine-tuning",
-                "data_structure": "seed_value -> iteration_number -> {seed_idx, reward, normalized_reward, used_in_update, timestamp, job_id}",
-                "used_in_update_definition": "normalized_reward > 0 means seed contributed positively to weight update",
+                "data_structure": "seed_value -> iteration_number -> {seed_idx, reward, normalized_reward, positive_contribution, timestamp, job_id}",
+                "positive_contribution_definition": "normalized_reward > 0 means seed contributed positively to weight update",
             }
         },
         "data": {}
@@ -474,7 +474,7 @@ def main():
                         "seed_idx": seed_idx,
                         "reward": raw_reward,
                         "normalized_reward": round(norm_reward, 6),
-                        "used_in_update": norm_reward > 0,
+                        "positive_contribution": norm_reward > 0,
                         "timestamp": timestamp,
                         "job_id": job_id,
                     }
